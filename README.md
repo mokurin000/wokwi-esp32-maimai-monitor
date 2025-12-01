@@ -1,6 +1,4 @@
-# ESP32 NTP Clock
-
-A simple clock that displays the time and date on an LCD1602 display. The time is synced via NTP.
+# ESP32 OLED Control
 
 Use [Wokwi](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode) to simulate this project.
 
