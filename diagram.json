@@ -53,7 +53,7 @@
     ],
     [
       "oled1:SCL",
-      "esp:22",
+      "esp:23",
       "green",
       [
         "v0"
@@ -61,7 +61,7 @@
     ],
     [
       "oled1:SDA",
-      "esp:21",
+      "esp:22",
       "green",
       [
         "v0"
