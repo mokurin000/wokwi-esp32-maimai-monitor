@@ -9,18 +9,20 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
-// 你使用的 OLED 尺寸（最常见的是 128x64）
+// OLED Screen size, commonly 128x64
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-// ESP32 硬件 I2C 引脚
+// I2C pins, should be I/O pins
+// Checkout https://lastminuteengineers.com/esp32-pinout-reference/#which-esp32-gpios-are-safe-to-use
 #define SDA_PIN 32
 #define SCL_PIN 33
 
+// Or try 0x3D
 #define OLED_ADDR 0x3C
 
+// Most ESP32 board does have a LED on GPIO 2, but wokwi doesn't
 #define LED_PIN 2
-// 50% brightness
 #define LED_on digitalWrite(LED_PIN, HIGH)
 #define LED_off digitalWrite(LED_PIN, LOW)
 
@@ -76,16 +78,16 @@ void spawn_flash_task()
   xTaskCreate(flash_led, "flash_led", 2000, NULL, ESP_TASK_PRIO_MAX - 1, NULL);
 }
 
-// 创建 I2C 实例（ESP32 默认使用 Wire，也可以自定义）
-TwoWire I2CESP32 = TwoWire(0); // I2C0
+// I2C instance
+TwoWire I2CESP32 = TwoWire(0); // I2C0, some have I2C1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &I2CESP32,
-                         -1); // -1 表示不使用 reset 引脚
+                         -1); // -1 means reset pin is missing or unused
 void initialise_oled()
 {
-  // 初始化硬件 I2C（ESP32）
-  I2CESP32.begin(SDA_PIN, SCL_PIN, 400000); // 400kHz 速度
+  // Initialize I2C bus
+  I2CESP32.begin(SDA_PIN, SCL_PIN, 1000000); // 1MHz speed
 
-  // 初始化 OLED
+  // Allocate the display buffer
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR))
   {
     Serial.println(F("SSD1306 allocation failed"));
@@ -93,18 +95,20 @@ void initialise_oled()
       ; // 初始化失败，死循环
   }
 
-  // 清屏
+  // clear all pixels
   display.clearDisplay();
 
-  // 设置文字大小和颜色
-  display.setTextSize(2);              // 2倍大小
-  display.setTextColor(SSD1306_WHITE); // 白字
+  // set text size and color
+  display.setTextSize(2);              // 2 times sized
+  display.setTextColor(SSD1306_WHITE); // white text
 
-  display.setCursor(0, 0); // x=15, y=20
-  display.print("Init");
+  // dim screen
   display.dim(true);
 
-  // 把缓冲区内容推到屏幕上
+  display.setCursor(0, 0);
+  display.print("Init");
+
+  // flush buffer to the screen
   display.display();
 }
 
