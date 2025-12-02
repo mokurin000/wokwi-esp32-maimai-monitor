@@ -14,10 +14,67 @@
 #define SCREEN_HEIGHT 64
 
 // ESP32 硬件 I2C 引脚
-#define SDA_PIN 22
-#define SCL_PIN 23
+#define SDA_PIN 32
+#define SCL_PIN 33
 
 #define OLED_ADDR 0x3C
+
+#define LED_PIN 2
+// 50% brightness
+#define LED_on digitalWrite(LED_PIN, HIGH)
+#define LED_off digitalWrite(LED_PIN, LOW)
+
+std::atomic<bool> Flashing(false);
+
+struct Arguments
+{
+  unsigned times;
+  unsigned interval;
+} FlashLight;
+
+void flash_led(void *)
+{
+  bool led_on = false;
+  for (;;)
+  {
+    if (!Flashing.load())
+    {
+      delay(100);
+      continue;
+    }
+    if (FlashLight.times <= 0)
+    {
+      Flashing.store(false);
+      LED_off;
+      led_on = false;
+      continue;
+    }
+    FlashLight.times--;
+    led_on = !led_on;
+    led_on ? LED_on : LED_off;
+    delay(FlashLight.interval);
+  }
+}
+
+void start_flash_light(unsigned interval_ms, unsigned times)
+{
+  // ignore if already flashing
+  if (Flashing.load())
+  {
+    return;
+  }
+
+  FlashLight.interval = interval_ms;
+  FlashLight.times = times;
+  Flashing.store(true);
+}
+
+void spawn_flash_task()
+{
+  pinMode(LED_PIN, OUTPUT);
+
+  xTaskCreate(flash_led, "flash_led", 2000, NULL, ESP_TASK_PRIO_MAX - 1, NULL);
+}
 
 // 创建 I2C 实例（ESP32 默认使用 Wire，也可以自定义）
 TwoWire I2CESP32 = TwoWire(0); // I2C0
@@ -63,6 +120,7 @@ void connect_wifi()
   {
     display.print(".");
     display.display();
+    start_flash_light(250, 1);
     delay(500);
   }
   Serial.println("");
@@ -121,6 +179,7 @@ long maimai_check()
   if (httpCode <= 0)
   {
     Serial.println("Server is unrechable");
+    start_flash_light(100, 30);
     return 0;
   }
 
@@ -130,12 +189,15 @@ long maimai_check()
     // not setting color: single-color screen
     if (elapsed >= 4000)
     {
+      start_flash_light(2000, 3);
     }
     else if (elapsed >= 2000)
     {
+      start_flash_light(1000, 4);
     }
     else if (elapsed >= 1000)
     {
+      start_flash_light(500, 8);
     }
   }
   else
@@ -191,6 +253,7 @@ void setup()
 {
   Serial.begin(115200);
 
+  spawn_flash_task();
   initialise_oled();
   connect_wifi();
   spawn_maimai_check();
